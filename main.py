@@ -1,59 +1,46 @@
 import asyncio
 import logging
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import Message
-from flask import Flask
-from threading import Thread
 from dotenv import load_dotenv
 import os
 
-# === Логирование ===
+# Логирование
 logging.basicConfig(level=logging.INFO)
 
-# === Загрузка токена ===
+# Загружаем переменные
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
-    raise ValueError("BOT_TOKEN не задан")
+    raise ValueError("BOT_TOKEN не установлен в переменных окружения")
 
-# === Бот aiogram ===
+# Создаём бота и диспетчер
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
+# Обработчик /start
 @dp.message(Command("start"))
-async def start(message: Message):
-    await message.answer("Бот работает! 🚀")
+async def cmd_start(message: types.Message):
+    await message.answer("🚀 Бот запущен! Работает 24/7 на Render.com")
 
+# Обработчик /help
+@dp.message(Command("help"))
+async def cmd_help(message: types.Message):
+    await message.answer("Я просто эхо-бот. Пиши что угодно!")
+
+# Эхо-обработчик
 @dp.message()
-async def echo(message: Message):
-    await message.answer(f"Ты сказал: {message.text}")
+async def echo(message: types.Message):
+    try:
+        await message.answer(f"Вы сказали:\n> {message.text}")
+    except Exception as e:
+        logging.error(f"Ошибка при ответе: {e}")
 
-# === Веб-сервер для keep-alive ===
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "Бот работает в фоне!"
-
-@app.route('/health')
-def health():
-    return "OK", 200
-
-def run_flask():
-    port = int(os.getenv('PORT', 10000))
-    app.run(host='0.0.0.0', port=port)
-
-# === Запуск бота и веб-сервера ===
+# Запуск бота
 async def main():
-    # Запускаем Flask в отдельном потоке
-    thread = Thread(target=run_flask, daemon=True)
-    thread.start()
-
-    # Запускаем бота
-    logging.info("Запуск бота...")
+    logging.info("Бот запускается...")
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())
